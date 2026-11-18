@@ -155,6 +155,17 @@ const isActive = computed(() => {
 // nested correctly, so we need to check the active state ourselves
 // TODO: Audit the routes and fix the nesting and remove this
 const activeChild = computed(() => {
+  const queryMatch = navigableChildren.value.find(child => {
+    if (!child.to) return false;
+    const isSamePath = route.path === resolvePath(child.to);
+    if (!isSamePath) return false;
+    if (child.to.query?.status) {
+      return route.query?.status === child.to.query.status;
+    }
+    return !route.query?.status || route.query?.status === 'open';
+  });
+  if (queryMatch) return queryMatch;
+
   const pathSame = navigableChildren.value.find(
     child => child.to && route.path === resolvePath(child.to)
   );

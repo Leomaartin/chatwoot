@@ -382,7 +382,11 @@ const uniqueInboxes = computed(() => {
 function setFiltersFromUISettings() {
   const { conversations_filter_by: filterBy = {} } = uiSettings.value;
   const { status, order_by: orderBy } = filterBy;
-  activeStatus.value = status || wootConstants.STATUS_TYPE.OPEN;
+  if (route.query?.status) {
+    activeStatus.value = route.query.status;
+  } else {
+    activeStatus.value = status || wootConstants.STATUS_TYPE.OPEN;
+  }
   activeSortBy.value = Object.values(wootConstants.SORT_BY_TYPE).includes(
     orderBy
   )
@@ -907,6 +911,18 @@ watch(chatLists, () => {
 
 // Filters can be applied from outside the list, so clear the selection here.
 watch(appliedFilters, () => resetBulkActions());
+
+watch(
+  () => route.query?.status,
+  newStatus => {
+    const targetStatus = newStatus || wootConstants.STATUS_TYPE.OPEN;
+    if (targetStatus !== activeStatus.value) {
+      activeStatus.value = targetStatus;
+      store.dispatch('setChatStatusFilter', targetStatus);
+      resetAndFetchData();
+    }
+  }
+);
 </script>
 
 <template>
