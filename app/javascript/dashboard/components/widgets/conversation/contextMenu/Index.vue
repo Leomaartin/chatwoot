@@ -298,153 +298,73 @@ export default {
   <div
     class="p-1 rounded-md shadow-xl bg-n-alpha-3/50 backdrop-blur-[100px] outline-1 outline outline-n-weak/50"
   >
-    <template v-if="isAllowed([MENU.MARK_AS_READ, MENU.MARK_AS_UNREAD])">
-      <MenuItem
-        v-if="!hasUnreadMessages"
-        :option="unreadOption"
-        variant="icon"
-        @click.stop="$emit('markAsUnread')"
-      />
-      <MenuItem
-        v-else
-        :option="readOption"
-        variant="icon"
-        @click.stop="$emit('markAsRead')"
-      />
-      <hr class="m-1 rounded border-b border-n-weak dark:border-n-weak" />
-    </template>
-    <template v-if="isAllowed([MENU.STATUS, MENU.SNOOZE])">
-      <template v-for="option in statusMenuConfig">
-        <MenuItem
-          v-if="show(option.key) && isAllowed([MENU.STATUS])"
-          :key="option.key"
-          :option="option"
-          variant="icon"
-          @click.stop="toggleStatus(option.key, null)"
-        />
-      </template>
-      <MenuItem
-        v-if="showSnooze && isAllowed([MENU.SNOOZE])"
-        :option="snoozeOption"
-        variant="icon"
-        @click.stop="snoozeConversation()"
-      />
-      <hr class="m-1 rounded border-b border-n-weak dark:border-n-weak" />
-    </template>
-    <template
-      v-if="isAllowed([MENU.PRIORITY, MENU.LABEL, MENU.AGENT, MENU.TEAM])"
+    <!-- Posponer -->
+    <MenuItem
+      v-if="isAllowed([MENU.SNOOZE])"
+      :option="snoozeOption"
+      variant="icon"
+      @click.stop="snoozeConversation()"
+    />
+    <hr class="m-1 rounded border-b border-n-weak dark:border-n-weak" />
+
+    <!-- Asignar etiqueta -->
+    <MenuItemWithSubmenu
+      v-if="isAllowed([MENU.LABEL])"
+      :option="labelMenuConfig"
+      :sub-menu-available="!!labels.length"
     >
-      <MenuItemWithSubmenu
-        v-if="isAllowed([MENU.PRIORITY])"
-        :option="priorityConfig"
-      >
+      <div class="pb-1 w-[12.5rem]">
+        <NextInput
+          v-model="labelSearchQuery"
+          type="search"
+          size="sm"
+          class="w-full"
+          custom-input-class="!ps-8 !text-xs"
+          :placeholder="$t('CONVERSATION.CARD_CONTEXT_MENU.SEARCH_LABELS')"
+          @click.stop
+          @keydown.stop
+        >
+          <template #prefix>
+            <Icon
+              icon="i-lucide-search"
+              class="absolute z-10 -translate-y-1/2 pointer-events-none size-3.5 text-n-slate-10 top-1/2 start-2"
+            />
+          </template>
+        </NextInput>
+      </div>
+      <div class="overflow-x-hidden overflow-y-auto max-h-[12.5rem]">
         <MenuItem
-          v-for="(option, i) in priorityConfig.options"
-          :key="i"
-          :option="option"
-          @click.stop="assignPriority(option.key)"
+          v-for="label in filteredLabels"
+          :key="label.id"
+          :option="generateMenuLabelConfig(label, 'label')"
+          :variant="
+            conversationLabels.includes(label.title)
+              ? 'label-assigned'
+              : 'label'
+          "
+          @mousedown.prevent
+          @click.stop="
+            conversationLabels.includes(label.title)
+              ? $emit('removeLabel', label)
+              : $emit('assignLabel', label)
+          "
         />
-      </MenuItemWithSubmenu>
-      <MenuItemWithSubmenu
-        v-if="isAllowed([MENU.LABEL])"
-        :option="labelMenuConfig"
-        :sub-menu-available="!!labels.length"
-      >
-        <div class="pb-1 w-[12.5rem]">
-          <NextInput
-            v-model="labelSearchQuery"
-            type="search"
-            size="sm"
-            class="w-full"
-            custom-input-class="!ps-8 !text-xs"
-            :placeholder="$t('CONVERSATION.CARD_CONTEXT_MENU.SEARCH_LABELS')"
-            @click.stop
-            @keydown.stop
-          >
-            <template #prefix>
-              <Icon
-                icon="i-lucide-search"
-                class="absolute z-10 -translate-y-1/2 pointer-events-none size-3.5 text-n-slate-10 top-1/2 start-2"
-              />
-            </template>
-          </NextInput>
-        </div>
-        <div class="overflow-x-hidden overflow-y-auto max-h-[12.5rem]">
-          <MenuItem
-            v-for="label in filteredLabels"
-            :key="label.id"
-            :option="generateMenuLabelConfig(label, 'label')"
-            :variant="
-              conversationLabels.includes(label.title)
-                ? 'label-assigned'
-                : 'label'
-            "
-            @mousedown.prevent
-            @click.stop="
-              conversationLabels.includes(label.title)
-                ? $emit('removeLabel', label)
-                : $emit('assignLabel', label)
-            "
-          />
-          <p
-            v-if="!filteredLabels.length"
-            class="px-2 py-2 m-0 text-xs text-center text-n-slate-11"
-          >
-            {{ $t('CONVERSATION.CARD_CONTEXT_MENU.NO_LABELS_FOUND') }}
-          </p>
-        </div>
-      </MenuItemWithSubmenu>
-      <MenuItemWithSubmenu
-        v-if="isAllowed([MENU.AGENT])"
-        :option="agentMenuConfig"
-        :sub-menu-available="!!assignableAgents.length"
-      >
-        <AgentLoadingPlaceholder v-if="assignableAgentsUiFlags.isFetching" />
-        <template v-else>
-          <MenuItem
-            v-for="agent in assignableAgents"
-            :key="agent.id"
-            :option="generateMenuLabelConfig(agent, 'agent')"
-            variant="agent"
-            @click.stop="$emit('assignAgent', agent)"
-          />
-        </template>
-      </MenuItemWithSubmenu>
-      <MenuItemWithSubmenu
-        v-if="isAllowed([MENU.TEAM])"
-        :option="teamMenuConfig"
-        :sub-menu-available="!!teams.length"
-      >
-        <MenuItem
-          v-for="team in teams"
-          :key="team.id"
-          :option="generateMenuLabelConfig(team, 'team')"
-          @click.stop="$emit('assignTeam', team)"
-        />
-      </MenuItemWithSubmenu>
-      <hr class="m-1 rounded border-b border-n-weak dark:border-n-weak" />
-    </template>
-    <template v-if="isAllowed([MENU.OPEN_NEW_TAB, MENU.COPY_LINK])">
-      <MenuItem
-        v-if="isAllowed([MENU.OPEN_NEW_TAB])"
-        :option="openInNewTabOption"
-        variant="icon"
-        @click.stop="openInNewTab"
-      />
-      <MenuItem
-        v-if="isAllowed([MENU.COPY_LINK])"
-        :option="copyLinkOption"
-        variant="icon"
-        @click.stop="copyConversationLink"
-      />
-    </template>
-    <template v-if="isAdmin && isAllowed([MENU.DELETE])">
-      <hr class="m-1 rounded border-b border-n-weak dark:border-n-weak" />
-      <MenuItem
-        :option="deleteOption"
-        variant="icon"
-        @click.stop="deleteConversation"
-      />
-    </template>
+        <p
+          v-if="!filteredLabels.length"
+          class="px-2 py-2 m-0 text-xs text-center text-n-slate-11"
+        >
+          {{ $t('CONVERSATION.CARD_CONTEXT_MENU.NO_LABELS_FOUND') }}
+        </p>
+      </div>
+    </MenuItemWithSubmenu>
+    <hr class="m-1 rounded border-b border-n-weak dark:border-n-weak" />
+
+    <!-- Eliminar conversación -->
+    <MenuItem
+      v-if="isAllowed([MENU.DELETE])"
+      :option="deleteOption"
+      variant="icon"
+      @click.stop="deleteConversation"
+    />
   </div>
 </template>

@@ -101,80 +101,8 @@ const toggleConversationLayout = () => {
       >
         {{ formattedAllCount }}
       </span>
-      <span
-        v-if="!hasAppliedFiltersOrActiveFolders"
-        class="px-2 py-1 my-0.5 mx-1 rounded-md capitalize bg-n-slate-3 text-xxs text-n-slate-12 shrink-0"
-      >
-        {{ $t(`CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.${activeStatus}.TEXT`) }}
-      </span>
     </div>
     <div class="flex items-center gap-1">
-      <template v-if="hasAppliedFilters && !hasActiveFolders">
-        <div class="relative">
-          <NextButton
-            v-tooltip.top-end="$t('FILTER.CUSTOM_VIEWS.ADD.SAVE_BUTTON')"
-            icon="i-lucide-save"
-            slate
-            xs
-            faded
-            @click="emit('addFolders')"
-          />
-          <div
-            id="saveFilterTeleportTarget"
-            class="absolute z-50 mt-2"
-            :class="{ 'ltr:right-0 rtl:left-0': isOnExpandedLayout }"
-          />
-        </div>
-      </template>
-      <template v-if="hasActiveFolders">
-        <div class="relative">
-          <NextButton
-            id="toggleConversationFilterButton"
-            v-tooltip.top-end="$t('FILTER.CUSTOM_VIEWS.EDIT.EDIT_BUTTON')"
-            icon="i-lucide-pen-line"
-            slate
-            xs
-            faded
-            @click="emit('filtersModal')"
-          />
-          <div
-            id="conversationFilterTeleportTarget"
-            class="absolute z-50 mt-2"
-            :class="{ 'ltr:right-0 rtl:left-0': isOnExpandedLayout }"
-          />
-        </div>
-        <NextButton
-          id="toggleConversationFilterButton"
-          v-tooltip.top-end="$t('FILTER.CUSTOM_VIEWS.DELETE.DELETE_BUTTON')"
-          icon="i-lucide-trash-2"
-          ruby
-          xs
-          faded
-          @click="emit('deleteFolders')"
-        />
-      </template>
-      <div v-else-if="!isContactScoped" class="relative">
-        <NextButton
-          id="toggleConversationFilterButton"
-          v-tooltip.right="$t('FILTER.TOOLTIP_LABEL')"
-          icon="i-lucide-list-filter"
-          slate
-          xs
-          faded
-          @click="emit('filtersModal')"
-        />
-        <div
-          id="conversationFilterTeleportTarget"
-          class="absolute z-50 mt-2"
-          :class="{ 'ltr:right-0 rtl:left-0': isOnExpandedLayout }"
-        />
-      </div>
-      <ConversationBasicFilter
-        v-if="!isContactScoped"
-        :is-on-expanded-layout="isOnExpandedLayout"
-        :show-status-filter="!hasAppliedFiltersOrActiveFolders"
-        @change-filter="onBasicFilterChange"
-      />
       <SwitchLayout
         :is-on-expanded-layout="isOnExpandedLayout"
         @toggle="toggleConversationLayout"
