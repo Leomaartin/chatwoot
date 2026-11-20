@@ -12,6 +12,7 @@ import UnreadBadge from 'dashboard/components-next/Conversation/ConversationCard
 import SLACardLabel from './components/SLACardLabel.vue';
 import VoiceCallStatus from './VoiceCallStatus.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
+import { formatScheduledTime } from 'dashboard/helper/scheduleHelper';
 
 const props = defineProps({
   chat: { type: Object, required: true },
@@ -97,6 +98,23 @@ const onSelectConversation = checked => {
 const selectedModel = computed({
   get: () => props.selected,
   set: value => onSelectConversation(value),
+});
+
+const scheduledTime = computed(() => {
+  const val =
+    props.chat?.custom_attributes?.scheduled_at || props.chat?.snoozed_until;
+  return formatScheduledTime(val);
+});
+
+const hasScheduledLabel = computed(() => {
+  const chatLabels = (props.chat?.labels || []).map(l =>
+    typeof l === 'string' ? l.toLowerCase() : l
+  );
+  return chatLabels.includes('agendado') || chatLabels.includes('agendar');
+});
+
+const showScheduledBadge = computed(() => {
+  return Boolean(scheduledTime.value || hasScheduledLabel.value);
 });
 
 watch(
@@ -229,6 +247,13 @@ watch(
           :count="unreadCount"
           class="ltr:ml-auto rtl:mr-auto mt-1"
         />
+      </div>
+      <div
+        v-if="showScheduledBadge"
+        class="mx-2 my-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 w-fit"
+      >
+        <Icon icon="i-lucide-calendar-clock" class="size-3.5 flex-shrink-0" />
+        <span>{{ scheduledTime ? `Agendado: ${scheduledTime}` : 'Agendado' }}</span>
       </div>
       <CardLabels
         v-if="showLabelsSection"

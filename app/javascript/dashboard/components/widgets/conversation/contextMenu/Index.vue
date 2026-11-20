@@ -26,6 +26,8 @@ const MENU = {
   AGENT: 'agent',
   TEAM: 'team',
   LABEL: 'label',
+  SEND_TO_BOT: 'send-to-bot',
+  SCHEDULE: 'schedule',
   DELETE: 'delete',
   OPEN_NEW_TAB: 'open-new-tab',
   COPY_LINK: 'copy-link',
@@ -82,6 +84,8 @@ export default {
     'assignTeam',
     'assignLabel',
     'removeLabel',
+    'sendToBot',
+    'schedule',
     'deleteConversation',
     'close',
   ],
@@ -157,6 +161,18 @@ export default {
         key: MENU.LABEL,
         icon: 'tag',
         label: this.$t('CONVERSATION.CARD_CONTEXT_MENU.ASSIGN_LABEL'),
+      },
+      sendToBotOption: {
+        key: MENU.SEND_TO_BOT,
+        label: 'Enviar al bot',
+        icon: 'bot',
+        lucideIcon: 'i-lucide-bot',
+      },
+      scheduleOption: {
+        key: MENU.SCHEDULE,
+        label: 'Agendar',
+        icon: 'calendar',
+        lucideIcon: 'i-lucide-calendar-clock',
       },
       agentMenuConfig: {
         key: MENU.AGENT,
@@ -251,6 +267,14 @@ export default {
     assignPriority(priority) {
       this.$emit('assignPriority', priority);
     },
+    sendToBot() {
+      this.$emit('sendToBot', this.chatId);
+      this.$emit('close');
+    },
+    scheduleConversation() {
+      this.$emit('schedule', this.chatId);
+      this.$emit('close');
+    },
     deleteConversation() {
       this.$emit('deleteConversation', this.chatId);
     },
@@ -307,56 +331,21 @@ export default {
     />
     <hr class="m-1 rounded border-b border-n-weak dark:border-n-weak" />
 
-    <!-- Asignar etiqueta -->
-    <MenuItemWithSubmenu
-      v-if="isAllowed([MENU.LABEL])"
-      :option="labelMenuConfig"
-      :sub-menu-available="!!labels.length"
-    >
-      <div class="pb-1 w-[12.5rem]">
-        <NextInput
-          v-model="labelSearchQuery"
-          type="search"
-          size="sm"
-          class="w-full"
-          custom-input-class="!ps-8 !text-xs"
-          :placeholder="$t('CONVERSATION.CARD_CONTEXT_MENU.SEARCH_LABELS')"
-          @click.stop
-          @keydown.stop
-        >
-          <template #prefix>
-            <Icon
-              icon="i-lucide-search"
-              class="absolute z-10 -translate-y-1/2 pointer-events-none size-3.5 text-n-slate-10 top-1/2 start-2"
-            />
-          </template>
-        </NextInput>
-      </div>
-      <div class="overflow-x-hidden overflow-y-auto max-h-[12.5rem]">
-        <MenuItem
-          v-for="label in filteredLabels"
-          :key="label.id"
-          :option="generateMenuLabelConfig(label, 'label')"
-          :variant="
-            conversationLabels.includes(label.title)
-              ? 'label-assigned'
-              : 'label'
-          "
-          @mousedown.prevent
-          @click.stop="
-            conversationLabels.includes(label.title)
-              ? $emit('removeLabel', label)
-              : $emit('assignLabel', label)
-          "
-        />
-        <p
-          v-if="!filteredLabels.length"
-          class="px-2 py-2 m-0 text-xs text-center text-n-slate-11"
-        >
-          {{ $t('CONVERSATION.CARD_CONTEXT_MENU.NO_LABELS_FOUND') }}
-        </p>
-      </div>
-    </MenuItemWithSubmenu>
+    <!-- Enviar al bot -->
+    <MenuItem
+      v-if="isAllowed([MENU.SEND_TO_BOT])"
+      :option="sendToBotOption"
+      variant="icon"
+      @click.stop="sendToBot"
+    />
+
+    <!-- Agendar -->
+    <MenuItem
+      v-if="isAllowed([MENU.SCHEDULE])"
+      :option="scheduleOption"
+      variant="icon"
+      @click.stop="scheduleConversation"
+    />
     <hr class="m-1 rounded border-b border-n-weak dark:border-n-weak" />
 
     <!-- Eliminar conversación -->

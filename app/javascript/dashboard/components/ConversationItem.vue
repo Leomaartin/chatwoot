@@ -7,6 +7,7 @@ import ConversationCard from './widgets/conversation/ConversationCard.vue';
 import ConversationCardExpanded from 'dashboard/components-next/Conversation/ConversationCard/ConversationCardExpanded.vue';
 import ContextMenu from 'dashboard/components/ui/ContextMenu.vue';
 import ConversationContextMenu from './widgets/conversation/contextMenu/Index.vue';
+import { useAlert } from 'dashboard/composables';
 
 const props = defineProps({
   source: { type: Object, required: true },
@@ -34,6 +35,7 @@ const markAsRead = inject('markAsRead');
 const assignPriority = inject('assignPriority');
 const isConversationSelected = inject('isConversationSelected');
 const deleteConversation = inject('deleteConversation');
+const openScheduleModal = inject('openScheduleModal', null);
 
 // --- Context menu state (shared by both layouts) ---
 const showContextMenu = ref(false);
@@ -176,6 +178,64 @@ const onDeleteConversation = () => {
   deleteConversation(props.source.id);
   closeContextMenu();
 };
+
+const onSendToBot = async () => {
+  closeContextMenu();
+  const conversationId = props.source.id;
+  try {
+    const currentLabels = props.source.labels || [];
+    const labelsToRemove = [
+      'responder',
+      'Responder',
+      'agendar',
+      'Agendar',
+      'agendado',
+      'Agendado',
+      'reponder',
+      'Reponder',
+    ];
+    const toRemove = labelsToRemove.filter(l =>
+      currentLabels.some(cl => cl.toLowerCase() === l.toLowerCase())
+    );
+
+    if (toRemove.length > 0) {
+      await removeLabels(toRemove, [conversationId]);
+    } else {
+      await removeLabels(
+        ['responder', 'agendar', 'agendado'],
+        [conversationId]
+      );
+    }
+
+    const existingCustom = { ...(props.source.custom_attributes || {}) };
+    if (existingCustom.scheduled_at) {
+      delete existingCustom.scheduled_at;
+      await store.dispatch('updateCustomAttributes', {
+        conversationId,
+        customAttributes: existingCustom,
+      });
+      props.source.custom_attributes = existingCustom;
+    }
+
+    props.source.labels = (props.source.labels || []).filter(
+      l =>
+        !['responder', 'agendar', 'agendado', 'reponder'].includes(
+          l.toLowerCase()
+        )
+    );
+
+    useAlert('Conversación enviada al bot');
+  } catch (error) {
+    useAlert('Error al enviar al bot');
+  }
+};
+
+const onSchedule = () => {
+  closeContextMenu();
+  if (openScheduleModal) {
+    openScheduleModal(props.source);
+  }
+};
 </script>
 
 <template>
@@ -229,6 +289,8 @@ const onDeleteConversation = () => {
       :has-unread-messages="source.unread_count > 0"
       :conversation-labels="source.labels"
       :conversation-url="conversationPath"
+      @send-to-bot="onSendToBot"
+      @schedule="onSchedule"
       @update-conversation="onUpdateConversation"
       @assign-agent="onAssignAgent"
       @assign-label="onAssignLabel"

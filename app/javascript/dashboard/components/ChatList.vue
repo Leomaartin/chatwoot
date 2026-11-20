@@ -251,13 +251,22 @@ const conversationListPagination = computed(() => {
 });
 
 const conversationFilters = computed(() => {
+  let labels = props.label ? [props.label] : undefined;
+  if (props.label) {
+    const lower = props.label.toLowerCase();
+    if (lower === 'agendado' || lower === 'agendar') {
+      labels = ['agendado', 'agendar'];
+    } else if (lower === 'responder' || lower === 'reponder') {
+      labels = ['responder', 'reponder'];
+    }
+  }
   return {
     inboxId: props.conversationInbox ? props.conversationInbox : undefined,
     assigneeType: activeAssigneeTab.value,
     status: activeStatus.value,
     sortBy: activeSortBy.value,
     page: conversationListPagination.value,
-    labels: props.label ? [props.label] : undefined,
+    labels,
     teamId: props.teamId || undefined,
     conversationType: props.conversationType || undefined,
   };
@@ -281,6 +290,9 @@ const pageTitle = computed(() => {
     return activeTeam.value.name;
   }
   if (props.label) {
+    const lower = props.label.toLowerCase();
+    if (lower === 'responder' || lower === 'reponder') return 'Responder';
+    if (lower === 'agendado' || lower === 'agendar') return 'Agendado';
     return `#${props.label}`;
   }
   if (props.conversationType === wootConstants.CONVERSATION_TYPE.MENTION) {

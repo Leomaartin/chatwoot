@@ -50,9 +50,28 @@ export const filterByTeam = (shouldFilter, teamId, chatTeamId) => {
   return teamId ? isOnTeam && shouldFilter : shouldFilter;
 };
 
-export const filterByLabel = (shouldFilter, labels, chatLabels) => {
-  const isOnLabel = labels.every(label => chatLabels.includes(label));
-  return labels.length ? isOnLabel && shouldFilter : shouldFilter;
+export const filterByLabel = (shouldFilter, labels, chatLabels = []) => {
+  if (!labels || !labels.length) return shouldFilter;
+  const lowerChatLabels = (chatLabels || []).map(l =>
+    typeof l === 'string' ? l.toLowerCase() : l
+  );
+  const isOnLabel = labels.some(label => {
+    const lowerLabel = typeof label === 'string' ? label.toLowerCase() : label;
+    if (lowerLabel === 'agendado' || lowerLabel === 'agendar') {
+      return (
+        lowerChatLabels.includes('agendado') ||
+        lowerChatLabels.includes('agendar')
+      );
+    }
+    if (lowerLabel === 'responder' || lowerLabel === 'reponder') {
+      return (
+        lowerChatLabels.includes('responder') ||
+        lowerChatLabels.includes('reponder')
+      );
+    }
+    return lowerChatLabels.includes(lowerLabel);
+  });
+  return isOnLabel && shouldFilter;
 };
 export const filterByUnattended = (
   shouldFilter,

@@ -1,9 +1,12 @@
 <script setup>
-import { ref, computed, provide } from 'vue';
+import { ref, computed, provide, inject } from 'vue';
+import { useStore } from 'dashboard/composables/store';
+import { useAlert } from 'dashboard/composables';
 import { Virtualizer } from 'virtua/vue';
 import { useBreakpoints } from '@vueuse/core';
 import { useChatListKeyboardEvents } from 'dashboard/composables/chatlist/useChatListKeyboardEvents';
 import ConversationItem from './ConversationItem.vue';
+import ScheduleConversationDialog from './widgets/conversation/ScheduleConversationDialog.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import IntersectionObserver from 'dashboard/components/IntersectionObserver.vue';
 
@@ -26,6 +29,69 @@ const emit = defineEmits(['loadMore']);
 const conversationListRef = ref(null);
 const virtualListRef = ref(null);
 const isContextMenuOpen = ref(false);
+
+const store = useStore();
+const assignLabels = inject('assignLabels');
+const removeLabels = inject('removeLabels');
+
+const schedulingConversation = ref(null);
+const scheduleDialogRef = ref(null);
+
+const onOpenScheduleModal = conversation => {
+  schedulingConversation.value = conversation;
+  scheduleDialogRef.value?.open();
+};
+
+provide('openScheduleModal', onOpenScheduleModal);
+
+const handleScheduleConfirm = async ({ conversation, scheduledAt }) => {
+  if (!conversation) return;
+  const conversationId = conversation.id;
+  try {
+    const currentLabels = conversation.labels || [];
+    const responderLabels = [
+      'responder',
+      'Responder',
+      'reponder',
+      'Reponder',
+    ].filter(l =>
+      currentLabels.some(cl => cl.toLowerCase() === l.toLowerCase())
+    );
+
+    if (responderLabels.length > 0 && removeLabels) {
+      await removeLabels(responderLabels, [conversationId]);
+    }
+
+    if (assignLabels) {
+      await assignLabels(['agendado'], [conversationId]);
+    }
+
+    const updatedCustomAttributes = {
+      ...(conversation.custom_attributes || {}),
+      scheduled_at: scheduledAt,
+    };
+
+    await store.dispatch('updateCustomAttributes', {
+      conversationId,
+      customAttributes: updatedCustomAttributes,
+    });
+
+    conversation.custom_attributes = updatedCustomAttributes;
+    if (!conversation.labels) {
+      conversation.labels = [];
+    }
+    if (!conversation.labels.some(l => l.toLowerCase() === 'agendado')) {
+      conversation.labels.push('agendado');
+    }
+    conversation.labels = conversation.labels.filter(
+      l => !['responder', 'reponder'].includes(l.toLowerCase())
+    );
+
+    useAlert('Conversación agendada con éxito');
+  } catch (error) {
+    useAlert('Error al agendar la conversación');
+  }
+};
 
 provide('contextMenuElementTarget', virtualListRef);
 
@@ -89,6 +155,12 @@ defineExpose({ conversationListRef });
       v-else
       :options="intersectionObserverOptions"
       @observed="loadMoreConversations"
+    />
+    <ScheduleConversationDialog
+      ref="scheduleDialogRef"
+      :conversation="schedulingConversation"
+      @confirm="handleScheduleConfirm"
+      @close="schedulingConversation = null"
     />
   </div>
 </template>

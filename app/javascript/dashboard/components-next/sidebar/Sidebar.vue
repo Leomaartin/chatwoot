@@ -229,6 +229,7 @@ useEventListener(document, 'touchend', onResizeEnd);
 
 const inboxes = useMapGetter('inboxes/getInboxes');
 const labels = useMapGetter('labels/getLabelsOnSidebar');
+const allLabels = useMapGetter('labels/getLabels');
 const allUnreadCount = useMapGetter(
   'conversationUnreadCounts/getAllUnreadCount'
 );
@@ -237,6 +238,24 @@ const getInboxUnreadCount = useMapGetter(
 );
 const getLabelUnreadCount = useMapGetter(
   'conversationUnreadCounts/getLabelUnreadCount'
+);
+
+const responderLabel = computed(() =>
+  allLabels.value.find(l =>
+    ['responder', 'reponder'].includes(l.title.toLowerCase())
+  )
+);
+const responderUnreadCount = computed(() =>
+  responderLabel.value ? getLabelUnreadCount.value(responderLabel.value.id) : 0
+);
+
+const agendadoLabel = computed(() =>
+  allLabels.value.find(l =>
+    ['agendado', 'agendar'].includes(l.title.toLowerCase())
+  )
+);
+const agendadoUnreadCount = computed(() =>
+  agendadoLabel.value ? getLabelUnreadCount.value(agendadoLabel.value.id) : 0
 );
 const getTeamUnreadCount = useMapGetter(
   'conversationUnreadCounts/getTeamUnreadCount'
@@ -387,15 +406,23 @@ const menuItems = computed(() => {
           name: 'Responder',
           label: 'Responder',
           icon: 'i-lucide-message-square-reply',
-          badgeCount: allUnreadCount.value,
-          activeOn: ['inbox_conversation'],
-          to: accountScopedRoute('home', {}, { status: 'open' }),
+          badgeCount: responderUnreadCount.value,
+          activeOn: ['label_conversations', 'conversations_through_label'],
+          to: accountScopedRoute('label_conversations', { label: 'responder' }),
+        },
+        {
+          name: 'Agendado',
+          label: 'Agendado',
+          icon: 'i-lucide-calendar-clock',
+          badgeCount: agendadoUnreadCount.value,
+          activeOn: ['label_conversations', 'conversations_through_label'],
+          to: accountScopedRoute('label_conversations', { label: 'agendado' }),
         },
         {
           name: 'All',
           label: 'Todas',
           icon: 'i-lucide-inbox',
-          activeOn: [],
+          activeOn: ['inbox_conversation'],
           to: accountScopedRoute('home', {}, { status: 'all' }),
         },
       ],
